@@ -1,0 +1,26 @@
+# 태그(v*) 를 올리면 서명된 APK 를 만들어 릴리스에 passio.apk 로 올린다.
+# 받는 주소(고정): https://github.com/timeofpassion/passio-android/releases/latest/download/passio.apk
+name: release
+on:
+  push: { tags: ["v*"] }
+permissions: { contents: write }
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: "8.7" }
+      - name: build
+        env:
+          PASSIO_KEYSTORE_PASSWORD: ${{ secrets.PASSIO_KEYSTORE_PASSWORD }}
+          PASSIO_VERSION_NAME: ${{ github.ref_name }}
+          PASSIO_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          echo "${{ secrets.PASSIO_KEYSTORE_B64 }}" | base64 -d > "$RUNNER_TEMP/passio.p12"
+          PASSIO_KEYSTORE_PATH="$RUNNER_TEMP/passio.p12" gradle assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk passio.apk
+      - run: gh release create "$GITHUB_REF_NAME" passio.apk --title "Passio $GITHUB_REF_NAME" --notes "안드로이드 시험판"
+        env: { GH_TOKEN: "${{ github.token }}" }

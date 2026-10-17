@@ -1,0 +1,32 @@
+plugins { id "com.android.application" }
+
+// 서명키는 저장소에 없다 — CI 비밀값(PASSIO_KEYSTORE_*)으로만 들어온다. 원본 = 대표 개인 드라이브 Passio_앱서명키
+def ks = System.getenv("PASSIO_KEYSTORE_PATH")
+
+android {
+    namespace "com.passionpeople.passio"
+    compileSdk 34
+    defaultConfig {
+        // ★패키지명은 플레이스토어에 한 번 올리면 못 바꾼다(열정의사람들 기준)
+        applicationId "com.passionpeople.passio"
+        minSdk 23
+        targetSdk 34
+        versionCode Integer.parseInt(System.getenv("PASSIO_VERSION_CODE") ?: "1")
+        versionName System.getenv("PASSIO_VERSION_NAME") ?: "0.1.0"
+    }
+    signingConfigs {
+        release {
+            if (ks) {
+                storeFile file(ks)
+                storeType "pkcs12"
+                storePassword System.getenv("PASSIO_KEYSTORE_PASSWORD")
+                keyAlias "passio"
+                keyPassword System.getenv("PASSIO_KEYSTORE_PASSWORD")
+            }
+        }
+    }
+    buildTypes { release { minifyEnabled false; if (ks) signingConfig signingConfigs.release } }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+
+dependencies { implementation "com.google.androidbrowserhelper:androidbrowserhelper:2.5.0" }
